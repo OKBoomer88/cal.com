@@ -17,8 +17,8 @@ services:
     volumes:
       - database-data:/var/lib/postgresql
     environment:
-      - POSTGRES_USER=unicorn_user
-      - POSTGRES_PASSWORD=magical_password
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - POSTGRES_DB=calendso
     networks:
       - stack
@@ -35,7 +35,8 @@ services:
       - "${REDIS_PORT:-6379}:6379"
 
   calcom:
-    image: calcom.docker.scarf.sh/calcom/cal.com
+    image: calcom/cal.com:v6.1.0-arm
+    platform: linux/arm64/v8
     build:
       context: .
       dockerfile: Dockerfile
@@ -118,21 +119,21 @@ services:
       - redis
 
   # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
-  studio:
-    image: calcom.docker.scarf.sh/calcom/cal.com
-    restart: always
-    networks:
-      - stack
-    ports:
-      - 5555:5555
-    env_file: .env
-    environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
-      - DATABASE_DIRECT_URL=${DATABASE_URL}
-    depends_on:
-      - database
-    command:
-      - npx
-      - prisma
-      - studio
+  #studio:
+  #  image: calcom.docker.scarf.sh/calcom/cal.com
+  #  restart: always
+  #  networks:
+  #    - stack
+  #  ports:
+  #    - 5555:5555
+  #  env_file: .env
+  #  environment:
+  #    - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
+  #    - DATABASE_DIRECT_URL=${DATABASE_URL}
+  #  depends_on:
+  #    - database
+  #  command:
+  #    - npx
+  #    - prisma
+  #    - studio
 # END SECTION: Optional use of Prisma Studio.
