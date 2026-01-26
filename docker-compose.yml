@@ -61,6 +61,9 @@ services:
       - 3000:3000
     env_file: .env
     environment:
+      - NEXTJS_IGNORE_ESLINT=1
+      - NEXTJS_CONCURRENT_FEATURES=false
+      - NODE_OPTIONS=--max_old_space_size=8192
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@${DATABASE_HOST}/${POSTGRES_DB}
       - DATABASE_DIRECT_URL=${DATABASE_URL}
     depends_on:
@@ -117,6 +120,40 @@ services:
     depends_on:
       - database
       - redis
+
+  line-bot:
+    build:
+      context: ../micom-chatbot
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"                                 # Host port 4000 - internal port 4000
+    volumes:
+      - ../micom-chatbot:/app                       # mount your source code
+      - /app/node_modules                           # anonymous volume → preserves container’s node_modules
+    command: npm run dev                            # or if no nodemon, then node src/index.js
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - LINE_CHANNEL_ACCESS_TOKEN=${LINE_CHANNEL_ACCESS_TOKEN}
+      - LINE_CHANNEL_SECRET=${LINE_CHANNEL_SECRET}  # if using signature verification
+      - CALCOM_API_URL=${CALCOM_API_BASE_URL}/v2    # URL to Cal.com (adjust service name/port)
+      - CALCOM_API_KEY=${CALCOM_API_KEY}            # pass your unlocked key
+    depends_on:
+      - calcom                                      # wait for Cal.com to be healthy
+    restart: unless-stopped
+    # Replace line above once local instance in use (or update env variable CALCOM_BASE_URL
+    #  - CALCOM_API_URL=http://calcom:3000/api/v2    # internal URL to Cal.com (adjust service name/port)
+    #  --> CALCOM_API_BASE_URL='http://calcom:3000/api'
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: "http line-bot:4000"   # tunnels to the line-bot service on internal port 4000
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+    ports:
+      - "4040:4040"                 # access ngrok web inspector
+    depends_on:
+      - line-bot
+    restart: unless-stopped
 
   # Optional use of Prisma Studio. In production, comment out or remove the section below to prevent unwanted access to your database.
   #studio:
